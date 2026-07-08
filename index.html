@@ -1,148 +1,504 @@
-```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เกม AR จำแนกประเภทสัตว์สำหรับจอทีวีและไอแพด</title>
-    <!-- Tailwind CSS for UI styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- MediaPipe Hands for Hand Tracking -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Sarabun & Mitr) -->
-    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;600;700&family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background-color: #0b0f19;
-            color: #f1f5f9;
-            overflow: hidden;
-            height: 100vh;
-            position: relative;
-        }
-        h1, h2, h3, .font-title {
-            font-family: 'Mitr', sans-serif;
-        }
-        /* Style for interactive buttons overlay */
-        .ar-btn {
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border-width: 4px;
-        }
-        .ar-btn-active {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(245, 158, 11, 0.9);
-            border-color: #f59e0b !important;
-            background-color: rgba(245, 158, 11, 0.25) !important;
-        }
-        /* Flip video/canvas for mirror mode (default) */
-        .mirror-view {
-            transform: scaleX(-1);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>เกม AR จำแนกประเภทอาหารของสัตว์สำหรับจอทีวีในห้องเรียน</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;600;700&family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+    body{font-family:'Sarabun',sans-serif;background-color:#0b0f19;color:#f1f5f9;overflow:hidden;height:100vh}
+    h1,h2,h3,.font-title{font-family:'Mitr',sans-serif}
+    .ar-btn{transition:all .2s cubic-bezier(.175,.885,.32,1.275);border-width:4px}
+    .ar-btn-active{transform:scale(1.08);box-shadow:0 0 40px rgba(245,158,11,.9);border-color:#f59e0b!important;background-color:rgba(245,158,11,.25)!important}
+    .mirror-view{transform:scaleX(-1)}
+    .dwell-ring{transition:stroke-dashoffset .05s linear}
+    .answer-card{transition:all .2s ease}
+    .answer-card.hover-active{transform:scale(1.05);box-shadow:0 0 30px rgba(255,255,255,.25)}
+</style>
 </head>
-<body class="flex flex-col items-center justify-between p-3 md:p-4 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950">
+<body class="flex flex-col items-center justify-between p-4 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950">
 
-    <!-- Header Section - Large & Clear for TV/iPad -->
-    <header class="w-full max-w-6xl bg-slate-800/95 backdrop-blur-md rounded-2xl p-3 md:p-4 flex justify-between items-center shadow-2xl border-2 border-indigo-500/30 z-30">
-        <div class="flex items-center gap-3 md:gap-4">
-            <div class="bg-amber-500 p-2.5 md:p-3.5 rounded-2xl text-slate-950 shadow-lg shadow-amber-500/30">
-                <i class="fa-solid fa-wand-magic-sparkles text-xl md:text-2xl animate-spin-slow"></i>
-            </div>
-            <div>
-                <h1 class="text-lg md:text-2xl font-extrabold text-amber-400 leading-tight">เกม AR จำแนกประเภทอาหารของสัตว์</h1>
-                <p class="text-xs md:text-sm text-slate-300 hidden sm:block">เรียนรู้พฤติกรรมการกินของสัตว์แบบเสมือนจริงหน้าชั้นเรียนและบนไอแพด</p>
-            </div>
+<header class="w-full max-w-6xl bg-slate-800/90 backdrop-blur-md rounded-2xl p-4 flex justify-between items-center shadow-2xl border-2 border-indigo-500/30 z-30 flex-wrap gap-3">
+    <div class="flex items-center gap-4">
+        <div class="bg-amber-500 p-3.5 rounded-2xl text-slate-950 shadow-lg shadow-amber-500/30">
+            <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
         </div>
-        
-        <div class="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
-            <!-- Camera View Controls -->
-            <button id="btn-toggle-mirror" class="bg-slate-700/90 hover:bg-slate-600 px-3 py-1.5 rounded-xl text-[11px] md:text-xs font-semibold border border-slate-600 transition flex items-center gap-2">
-                <i class="fa-solid fa-arrows-left-right"></i> สลับโหมดกระจก
+        <div>
+            <h1 class="text-xl md:text-3xl font-extrabold text-amber-400 leading-tight">เกม AR จำแนกประเภทอาหารของสัตว์</h1>
+            <p class="text-sm text-slate-300">เรียนรู้พฤติกรรมการกินของสัตว์แบบเสมือนจริงหน้าชั้นเรียน</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-4 flex-wrap justify-end">
+        <button id="btn-toggle-mirror" class="bg-slate-700/80 hover:bg-slate-600 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-600 transition flex items-center gap-2">
+            <i class="fa-solid fa-arrows-left-right"></i> สลับโหมดกระจก
+        </button>
+        <div class="bg-slate-900/80 px-6 py-2.5 rounded-xl border border-slate-700/50 flex items-center gap-3">
+            <span class="text-sm text-slate-400">ข้อที่:</span>
+            <span id="question-number" class="font-title text-2xl font-bold text-amber-400">1/10</span>
+        </div>
+        <div class="bg-slate-900/80 px-6 py-2.5 rounded-xl border border-slate-700/50 flex items-center gap-3">
+            <span class="text-sm text-slate-400 font-bold">คะแนนรวม:</span>
+            <span id="score-display" class="font-title text-3xl font-black text-emerald-400">0</span>
+        </div>
+    </div>
+</header>
+
+<main class="w-full max-w-6xl flex-1 flex items-center justify-center relative mt-4 mb-2 overflow-hidden">
+
+    <!-- WELCOME SCREEN -->
+    <div id="welcome-screen" class="w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-500/50 flex items-center justify-center z-40">
+        <video id="webcam-welcome" class="absolute inset-0 w-full h-full object-cover z-0 mirror-view" autoplay playsinline muted></video>
+        <canvas id="hand-canvas-welcome" class="absolute inset-0 w-full h-full object-cover z-10 mirror-view"></canvas>
+        <div class="absolute inset-0 bg-slate-950/70 z-20 pointer-events-none"></div>
+
+        <div class="absolute inset-0 z-30 flex flex-col items-center justify-between p-6 md:p-10 pointer-events-none">
+            <div class="text-center space-y-3 max-w-3xl pointer-events-auto">
+                <span class="bg-indigo-600/90 text-white font-bold px-4 py-1.5 rounded-full text-xs uppercase tracking-widest inline-block shadow-md">
+                    <i class="fa-solid fa-camera mr-1.5"></i> ระบบตรวจจับปลายนิ้วมือวิเคราะห์แบบเรียลไทม์ (รองรับ iPad/Safari)
+                </span>
+                <h2 class="text-3xl md:text-5xl font-extrabold text-amber-400 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">เตรียมตัวเริ่มกิจกรรม!</h2>
+                <p class="text-slate-200 text-sm md:text-base max-w-2xl mx-auto drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed font-semibold">
+                    ให้นักเรียนยืนห่างจากกล้องระยะ <strong class="text-amber-400">1.5 - 2 เมตร</strong> แล้วยื่นมือของคุณขึ้นมา <br>
+                    จากนั้นใช้ปลายนิ้วชี้กับนิ้วโป้งทำท่า <strong class="text-emerald-400">"หยิบ/จีบมือเข้าหากัน"</strong> ค้างไว้ที่ปุ่มสีเหลืองด้านล่าง หรือแตะหน้าจอโดยตรงก็ได้
+                </p>
+            </div>
+
+            <div id="welcome-cam-detect" class="bg-indigo-950/90 border border-indigo-500/50 text-indigo-300 px-6 py-2.5 rounded-2xl text-sm flex items-center gap-2 shadow-xl animate-pulse pointer-events-auto">
+                <i class="fa-solid fa-circle-notch animate-spin"></i> กำลังรอสัญญาณตรวจจับมือจากกล้อง...
+            </div>
+
+            <!-- iPad/Safari manual camera trigger (hidden unless autoplay is blocked) -->
+            <button id="btn-enable-camera" class="hidden pointer-events-auto bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-3 rounded-2xl shadow-xl items-center gap-2 mb-2">
+                <i class="fa-solid fa-video"></i> กดเปิดกล้อง (สำหรับ iPad / Safari)
             </button>
-            <div class="bg-slate-900/80 px-3 md:px-5 py-1.5 md:py-2 rounded-xl border border-slate-700/50 flex items-center gap-2 md:gap-3">
-                <span class="text-xs md:text-sm text-slate-400">ข้อที่:</span>
-                <span id="question-number" class="font-title text-base md:text-xl font-bold text-amber-400">1/10</span>
-            </div>
-            <div class="bg-slate-900/80 px-3 md:px-5 py-1.5 md:py-2 rounded-xl border border-slate-700/50 flex items-center gap-2 md:gap-3">
-                <span class="text-xs md:text-sm text-slate-400 font-bold">คะแนน:</span>
-                <span id="score-display" class="font-title text-lg md:text-2xl font-black text-emerald-400">0</span>
-            </div>
-        </div>
-    </header>
 
-    <!-- Main TV/iPad Game Workspace -->
-    <main class="w-full max-w-6xl flex-1 flex items-center justify-center relative mt-3 mb-2 overflow-hidden">
-        
-        <!-- Welcome Screen & Camera Setup with AR START Button -->
-        <div id="welcome-screen" class="w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-500/50 flex items-center justify-center z-40">
-            <!-- Cam feed on start screen so student can align themselves before starting -->
-            <video id="webcam-welcome" class="absolute inset-0 w-full h-full object-cover z-0 mirror-view" autoplay playsinline muted></video>
-            <canvas id="hand-canvas-welcome" class="absolute inset-0 w-full h-full object-cover z-10 mirror-view"></canvas>
-            
-            <!-- Dark Overlay for Readability -->
-            <div class="absolute inset-0 bg-slate-950/70 z-20 pointer-events-none"></div>
-
-            <!-- UI Overlay on Top of Cam View -->
-            <div class="absolute inset-0 z-30 flex flex-col items-center justify-between p-5 md:p-10 pointer-events-none">
-                
-                <!-- Title & Guide -->
-                <div class="text-center space-y-2 md:space-y-3 max-w-3xl pointer-events-auto">
-                    <span class="bg-indigo-600/90 text-white font-bold px-3 py-1 rounded-full text-[10px] md:text-xs uppercase tracking-widest inline-block shadow-md">
-                        <i class="fa-solid fa-camera mr-1.5"></i> ระบบรองรับ iPad/iOS และตรวจจับแบบเรียลไทม์
-                    </span>
-                    <h2 class="text-2xl md:text-4xl font-extrabold text-amber-400 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">เตรียมตัวเริ่มกิจกรรม!</h2>
-                    <p class="text-slate-200 text-xs md:text-sm max-w-xl mx-auto drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed font-semibold">
-                        ให้นักเรียนยืนห่างจากกล้อง iPad ระยะ <strong class="text-amber-400">1 - 1.5 เมตร</strong> แล้วยื่นมือขึ้นมา <br>
-                        จากนั้นใช้ปลายนิ้วชี้กับนิ้วโป้งทำท่า <strong class="text-emerald-400">"หยิบ/จีบมือเข้าหากัน"</strong> ค้างไว้ที่ปุ่มเริ่มเกมส์ด้านล่าง!
-                    </p>
-                </div>
-
-                <!-- Live Camera Detect Warning & Direct Activation (Important for iOS Privacy Policy) -->
-                <div class="pointer-events-auto flex flex-col items-center gap-2">
-                    <div id="welcome-cam-detect" class="bg-indigo-950/90 border border-indigo-500/50 text-indigo-300 px-4 md:px-6 py-2 rounded-2xl text-xs md:text-sm flex items-center gap-2 shadow-xl">
-                        <i class="fa-solid fa-circle-notch animate-spin text-amber-400"></i> รอสัญญาณกล้องสักครู่...
+            <div class="w-full max-w-sm pointer-events-auto mt-2">
+                <button id="btn-start" class="ar-btn w-full py-5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 border-amber-300 text-slate-950 text-2xl md:text-3xl font-black rounded-3xl transition-all duration-300 transform active:scale-95 shadow-2xl shadow-amber-500/40 flex flex-col items-center justify-center gap-1 cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-hand-holding-hand text-3xl"></i>
+                        <span>หยิบเพื่อเริ่มเกมส์</span>
                     </div>
-                    <!-- Manual Camera Trigger Button for iPad Safe Launch -->
-                    <button id="btn-force-camera" onclick="requestIOSCamera()" class="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl border border-emerald-400 shadow-md transition-all">
-                        <i class="fa-solid fa-video mr-1.5 animate-pulse"></i> กดเปิดกล้อง (สำหรับ iPad/Safari)
-                    </button>
-                </div>
+                    <span class="text-xs text-slate-900/80 font-bold uppercase tracking-wider">(จีบนิ้วค้างไว้ หรือแตะหน้าจอ)</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
-                <!-- Giant AR Start Button (Interactive via both Hand Pinch and Click) -->
-                <div class="w-full max-w-sm pointer-events-auto mt-2">
-                    <button id="btn-start" onclick="startGame()" class="ar-btn w-full py-4 md:py-5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 border-amber-300 text-slate-950 text-xl md:text-2xl font-black rounded-3xl transition-all duration-300 transform active:scale-95 shadow-2xl shadow-amber-500/40 flex flex-col items-center justify-center gap-1 cursor-pointer">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-hand-holding-hand animate-bounce text-2xl"></i>
-                            <span>หยิบเพื่อเริ่มเกมส์</span>
-                        </div>
-                        <span class="text-[10px] text-slate-900/80 font-bold uppercase tracking-wider">(จีบนิ้วค้างไว้ หรือใช้นิ้วแตะปุ่มนี้)</span>
-                    </button>
+    <!-- GAME SCREEN -->
+    <div id="game-container" class="hidden w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-500/50 flex items-center justify-center">
+        <video id="webcam" class="absolute inset-0 w-full h-full object-cover z-0 mirror-view" autoplay playsinline muted></video>
+        <canvas id="hand-canvas" class="absolute inset-0 w-full h-full object-cover z-10 mirror-view"></canvas>
+        <div class="absolute inset-0 bg-slate-950/20 pointer-events-none z-0"></div>
+
+        <div id="camera-fallback" class="absolute inset-0 z-0 bg-slate-900 flex flex-col items-center justify-center text-center p-6 hidden">
+            <div class="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-4 border-2 border-rose-500 animate-pulse">
+                <i class="fa-solid fa-video-slash text-3xl text-rose-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white">ไม่สามารถเปิดกล้องได้</h3>
+            <p class="text-sm text-slate-400 max-w-md mt-2">โปรดกดยอมรับการเข้าใช้กล้องในแอดเดรสบาร์ Safari หรือใช้นิ้ว "แตะหน้าจอ" ตอบคำถามได้ทันทีโดยไม่ต้องใช้กล้อง</p>
+        </div>
+
+        <div class="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-6 pointer-events-none">
+            <!-- QUESTION CARD -->
+            <div class="w-full max-w-3xl mx-auto bg-slate-950/95 backdrop-blur-md rounded-2xl p-5 border-4 border-amber-400 text-center shadow-2xl pointer-events-auto flex flex-col md:flex-row items-center gap-6 justify-between">
+                <div class="relative w-full md:w-56 h-36 rounded-xl overflow-hidden border-2 border-slate-700 bg-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+                    <span id="animal-emoji" class="text-7xl"></span>
                 </div>
+                <div class="flex-1 text-left md:text-center">
+                    <p class="text-slate-400 text-sm font-semibold mb-1">สัตว์ชนิดนี้กินอาหารประเภทใด?</p>
+                    <h2 id="animal-name" class="text-3xl md:text-4xl font-black text-amber-400 font-title"></h2>
+                </div>
+            </div>
+
+            <!-- ANSWER BUTTONS -->
+            <div id="answer-zone" class="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-auto mb-2">
+                <button data-answer="plant" class="answer-card ar-btn bg-emerald-600/90 hover:bg-emerald-500 border-emerald-300 text-white rounded-3xl p-5 flex flex-col items-center gap-2 shadow-xl relative overflow-hidden">
+                    <i class="fa-solid fa-leaf text-4xl"></i>
+                    <span class="font-title text-xl font-bold">กินพืช (Herbivore)</span>
+                    <svg class="dwell-svg absolute inset-0 pointer-events-none" viewBox="0 0 100 100"><circle class="dwell-ring" cx="50" cy="50" r="46" fill="none" stroke="white" stroke-width="4" stroke-dasharray="289" stroke-dashoffset="289" opacity="0.7"/></svg>
+                </button>
+                <button data-answer="meat" class="answer-card ar-btn bg-rose-600/90 hover:bg-rose-500 border-rose-300 text-white rounded-3xl p-5 flex flex-col items-center gap-2 shadow-xl relative overflow-hidden">
+                    <i class="fa-solid fa-drumstick-bite text-4xl"></i>
+                    <span class="font-title text-xl font-bold">กินเนื้อ (Carnivore)</span>
+                    <svg class="dwell-svg absolute inset-0 pointer-events-none" viewBox="0 0 100 100"><circle class="dwell-ring" cx="50" cy="50" r="46" fill="none" stroke="white" stroke-width="4" stroke-dasharray="289" stroke-dashoffset="289" opacity="0.7"/></svg>
+                </button>
+                <button data-answer="both" class="answer-card ar-btn bg-indigo-600/90 hover:bg-indigo-500 border-indigo-300 text-white rounded-3xl p-5 flex flex-col items-center gap-2 shadow-xl relative overflow-hidden">
+                    <i class="fa-solid fa-utensils text-4xl"></i>
+                    <span class="font-title text-xl font-bold">กินทั้งพืชและสัตว์ (Omnivore)</span>
+                    <svg class="dwell-svg absolute inset-0 pointer-events-none" viewBox="0 0 100 100"><circle class="dwell-ring" cx="50" cy="50" r="46" fill="none" stroke="white" stroke-width="4" stroke-dasharray="289" stroke-dashoffset="289" opacity="0.7"/></svg>
+                </button>
             </div>
         </div>
 
-        <!-- AR Classroom Game Container -->
-        <div id="game-container" class="hidden w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-500/50 flex items-center justify-center">
-            <!-- Camera & Canvas overlay -->
-            <video id="webcam" class="absolute inset-0 w-full h-full object-cover z-0 mirror-view" autoplay playsinline muted></video>
-            <canvas id="hand-canvas" class="absolute inset-0 w-full h-full object-cover z-10 mirror-view"></canvas>
-
-            <!-- Black Backdrop for better visibility when camera has glare -->
-            <div class="absolute inset-0 bg-slate-950/20 pointer-events-none z-0"></div>
-
-            <!-- Fallback Screen if camera is blocked/denied -->
-            <div id="camera-fallback" class="absolute inset-0 z-0 bg-slate-900 flex flex-col items-center justify-center text-center p-6 hidden">
-                <div class="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-4 border-2 border-rose-500 animate-pulse">
-                    <i class="fa-solid fa-video-slash text-3xl text-rose-500"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white">กล้องถูกจำกัดการเข้าถึง</h3>
-                <p class="text-sm text-slate-400 max-w-md mt-2">โปรดกดยอมรับการเข้าใช้กล้องในแอดเดรสบาร์ Safari หรือใช้นิ้ว "แตะสัมผัสคำตอบ" โดยตรงบนหน้าจอไอแพดเพื่อเล่นได้อย่างรวดเร็วค่ะ</p>
+        <!-- FEEDBACK OVERLAY -->
+        <div id="feedback-overlay" class="hidden absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
+            <div id="feedback-box" class="rounded-3xl px-10 py-8 text-center shadow-2xl border-4">
+                <i id="feedback-icon" class="text-6xl mb-2"></i>
+                <p id="feedback-text" class="text-3xl font-black font-title"></p>
             </div>
+        </div>
+    </div>
 
-            <!-- AR HUD Overlay -->
-            <div class="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-6 pointer-events-none">
-                
-                <!-- TOP CENTER: Huge Question Card with Real Anima
+    <!-- RESULT SCREEN -->
+    <div id="result-screen" class="hidden w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-emerald-500/50 flex flex-col items-center justify-center gap-6 text-center p-8">
+        <i class="fa-solid fa-trophy text-7xl text-amber-400"></i>
+        <h2 class="text-4xl font-black text-amber-400 font-title">จบเกมแล้ว!</h2>
+        <p class="text-2xl text-slate-200">คะแนนรวมของคุณคือ <span id="final-score" class="text-emerald-400 font-black">0</span> / <span id="final-total">10</span></p>
+        <button id="btn-restart" class="ar-btn py-4 px-10 bg-amber-500 hover:bg-amber-400 border-amber-300 text-slate-950 text-xl font-black rounded-2xl shadow-xl">เล่นอีกครั้ง</button>
+    </div>
+</main>
+
+<script>
+/* ---------------------------------------------------------
+   GAME DATA
+--------------------------------------------------------- */
+const ANIMALS = [
+    { name: "ช้าง",   emoji: "🐘", answer: "plant" },
+    { name: "เสือ",   emoji: "🐯", answer: "meat"  },
+    { name: "หมี",    emoji: "🐻", answer: "both"  },
+    { name: "กระต่าย", emoji: "🐰", answer: "plant" },
+    { name: "สิงโต",  emoji: "🦁", answer: "meat"  },
+    { name: "หมู",    emoji: "🐷", answer: "both"  },
+    { name: "ม้า",    emoji: "🐴", answer: "plant" },
+    { name: "จระเข้", emoji: "🐊", answer: "meat"  },
+    { name: "ไก่",    emoji: "🐔", answer: "both"  },
+    { name: "ยีราฟ",  emoji: "🦒", answer: "plant" },
+];
+
+let quizOrder = [];
+let currentIndex = 0;
+let score = 0;
+let mirrorMode = true;
+let answering = false;
+
+/* ---------------------------------------------------------
+   ELEMENTS
+--------------------------------------------------------- */
+const welcomeScreen   = document.getElementById('welcome-screen');
+const gameContainer   = document.getElementById('game-container');
+const resultScreen    = document.getElementById('result-screen');
+const videoWelcome    = document.getElementById('webcam-welcome');
+const videoGame       = document.getElementById('webcam');
+const canvasWelcome   = document.getElementById('hand-canvas-welcome');
+const canvasGame      = document.getElementById('hand-canvas');
+const btnStart        = document.getElementById('btn-start');
+const btnEnableCamera = document.getElementById('btn-enable-camera');
+const camDetectBadge  = document.getElementById('welcome-cam-detect');
+const cameraFallback  = document.getElementById('camera-fallback');
+const btnToggleMirror = document.getElementById('btn-toggle-mirror');
+const btnRestart      = document.getElementById('btn-restart');
+
+/* ---------------------------------------------------------
+   CAMERA SETUP (iPad / Safari safe)
+   Key fixes for iPad:
+   1. Camera is only requested inside a real user-gesture
+      handler (tap), never purely on page load — iOS Safari
+      silently blocks getUserMedia() calls that aren't tied
+      to a user interaction.
+   2. Both <video> elements share the SAME MediaStream instead
+      of requesting the camera twice (iPadOS can fail or hang
+      on a second concurrent getUserMedia call).
+   3. video.play() is called manually and its promise is
+      caught, because iOS can reject autoplay even with the
+      `muted` + `playsinline` attributes present.
+   4. If camera access fails or is blocked, a fallback button
+      re-triggers the request from a fresh tap, and the game
+      still remains fully playable via on-screen taps only.
+--------------------------------------------------------- */
+let mediaStream = null;
+let cameraReady = false;
+
+function isIOSDevice() {
+    const ua = navigator.userAgent;
+    const iOS = /iPad|iPhone|iPod/.test(ua);
+    // iPadOS 13+ reports as "Macintosh" but has touch support
+    const iPadOS13 = ua.includes('Macintosh') && navigator.maxTouchPoints > 1;
+    return iOS || iPadOS13;
+}
+
+async function requestCameraStream() {
+    if (!window.isSecureContext) {
+        showCameraFallback('ต้องเปิดหน้านี้ผ่าน HTTPS เท่านั้น กล้องจึงจะทำงานได้ (Safari จะบล็อกกล้องบน HTTP)');
+        return null;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showCameraFallback('เบราว์เซอร์นี้ไม่รองรับการเข้าถึงกล้อง');
+        return null;
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+        });
+        return stream;
+    } catch (err) {
+        console.error('getUserMedia error:', err);
+        return null;
+    }
+}
+
+async function attachStreamToVideo(videoEl, stream) {
+    videoEl.srcObject = stream;
+    try {
+        await videoEl.play();
+    } catch (err) {
+        // iOS can reject the first programmatic play() — retry once on next tick
+        console.warn('video.play() rejected, retrying:', err);
+        await new Promise(r => setTimeout(r, 150));
+        try { await videoEl.play(); } catch (e2) { console.error('video.play() retry failed:', e2); }
+    }
+}
+
+async function initCamera() {
+    if (cameraReady) return true;
+    const stream = await requestCameraStream();
+    if (!stream) {
+        btnEnableCamera.classList.remove('hidden');
+        btnEnableCamera.classList.add('flex');
+        showCameraFallback();
+        return false;
+    }
+    mediaStream = stream;
+    await attachStreamToVideo(videoWelcome, mediaStream);
+    await attachStreamToVideo(videoGame, mediaStream);
+    cameraReady = true;
+    btnEnableCamera.classList.add('hidden');
+    cameraFallback.classList.add('hidden');
+    camDetectBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> พร้อมตรวจจับมือแล้ว';
+    startHandTracking();
+    return true;
+}
+
+function showCameraFallback(msg) {
+    if (msg) cameraFallback.querySelector('p').textContent = msg;
+    cameraFallback.classList.remove('hidden');
+    camDetectBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ไม่พบกล้อง — แตะหน้าจอเพื่อเล่นได้เลย';
+}
+
+// Try automatically on load (works on most non-iOS browsers / already-granted permission).
+window.addEventListener('load', () => {
+    initCamera().then(ok => {
+        if (!ok) {
+            btnEnableCamera.classList.remove('hidden');
+            btnEnableCamera.classList.add('flex');
+        }
+    });
+    if (isIOSDevice()) {
+        // Always surface the manual button on iPad/iPhone as a safety net,
+        // since silent autoplay-camera can be blocked without throwing.
+        setTimeout(() => {
+            if (!cameraReady) {
+                btnEnableCamera.classList.remove('hidden');
+                btnEnableCamera.classList.add('flex');
+            }
+        }, 1200);
+    }
+});
+
+// Manual, user-gesture-driven camera start — this is the one guaranteed to work on iPad Safari.
+btnEnableCamera.addEventListener('click', () => { initCamera(); });
+
+/* ---------------------------------------------------------
+   MIRROR TOGGLE
+--------------------------------------------------------- */
+btnToggleMirror.addEventListener('click', () => {
+    mirrorMode = !mirrorMode;
+    [videoWelcome, canvasWelcome, videoGame, canvasGame].forEach(el => el.classList.toggle('mirror-view', mirrorMode));
+});
+
+/* ---------------------------------------------------------
+   HAND TRACKING (MediaPipe Hands) — manual frame loop,
+   NOT the camera_utils Camera() helper, so we stay in full
+   control of getUserMedia ourselves (needed for iPad).
+--------------------------------------------------------- */
+let hands = null;
+let dwellTargets = new Map(); // element -> {progress, lastSeen}
+const DWELL_MS = 900;
+const PINCH_THRESHOLD = 0.06;
+
+function startHandTracking() {
+    if (hands) return;
+    hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
+    hands.onResults(onHandsResults);
+    requestAnimationFrame(handLoop);
+}
+
+async function handLoop() {
+    const activeVideo = welcomeScreen.classList.contains('hidden') ? videoGame : videoWelcome;
+    if (activeVideo.readyState >= 2 && hands) {
+        try { await hands.send({ image: activeVideo }); } catch (e) { /* ignore transient errors */ }
+    }
+    requestAnimationFrame(handLoop);
+}
+
+function onHandsResults(results) {
+    const inWelcome = !welcomeScreen.classList.contains('hidden');
+    const canvas = inWelcome ? canvasWelcome : canvasGame;
+    const video = inWelcome ? videoWelcome : videoGame;
+    canvas.width = video.videoWidth || canvas.clientWidth;
+    canvas.height = video.videoHeight || canvas.clientHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        clearDwellVisuals();
+        return;
+    }
+
+    const lm = results.multiHandLandmarks[0];
+    // Draw a simple cursor dot at the pinch midpoint
+    const thumb = lm[4], index = lm[8];
+    const midX = (thumb.x + index.x) / 2;
+    const midY = (thumb.y + index.y) / 2;
+    const px = midX * canvas.width;
+    const py = midY * canvas.height;
+
+    const dist = Math.hypot(thumb.x - index.x, thumb.y - index.y);
+    const isPinching = dist < PINCH_THRESHOLD;
+
+    ctx.beginPath();
+    ctx.arc(px, py, 18, 0, Math.PI * 2);
+    ctx.fillStyle = isPinching ? 'rgba(245,158,11,0.9)' : 'rgba(255,255,255,0.6)';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+
+    // Map the normalized point to real screen coordinates (accounting for mirror)
+    const rect = video.getBoundingClientRect();
+    const screenX = mirrorMode ? rect.right - midX * rect.width : rect.left + midX * rect.width;
+    const screenY = rect.top + midY * rect.height;
+
+    const target = inWelcome ? btnStart : findAnswerCardAt(screenX, screenY);
+    updateDwell(target, isPinching, inWelcome);
+}
+
+function findAnswerCardAt(x, y) {
+    const cards = document.querySelectorAll('#answer-zone .answer-card');
+    for (const card of cards) {
+        const r = card.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return card;
+    }
+    return null;
+}
+
+function clearDwellVisuals() {
+    document.querySelectorAll('.answer-card, #btn-start').forEach(el => {
+        el.classList.remove('ar-btn-active', 'hover-active');
+        const ring = el.querySelector('.dwell-ring');
+        if (ring) ring.style.strokeDashoffset = 289;
+    });
+    dwellTargets.clear();
+}
+
+function updateDwell(target, isPinching, inWelcome) {
+    document.querySelectorAll('.answer-card, #btn-start').forEach(el => {
+        if (el !== target) {
+            el.classList.remove('ar-btn-active', 'hover-active');
+            const ring = el.querySelector('.dwell-ring');
+            if (ring) ring.style.strokeDashoffset = 289;
+            dwellTargets.delete(el);
+        }
+    });
+    if (!target || !isPinching) return;
+
+    const now = performance.now();
+    let state = dwellTargets.get(target);
+    if (!state) { state = { start: now }; dwellTargets.set(target, state); }
+
+    const elapsed = now - state.start;
+    const progress = Math.min(elapsed / DWELL_MS, 1);
+    target.classList.add(inWelcome ? 'ar-btn-active' : 'hover-active');
+    const ring = target.querySelector('.dwell-ring');
+    if (ring) ring.style.strokeDashoffset = 289 * (1 - progress);
+
+    if (progress >= 1) {
+        dwellTargets.delete(target);
+        target.click();
+    }
+}
+
+/* ---------------------------------------------------------
+   GAME FLOW
+--------------------------------------------------------- */
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function startGame() {
+    quizOrder = shuffle(ANIMALS);
+    currentIndex = 0;
+    score = 0;
+    document.getElementById('score-display').textContent = '0';
+    welcomeScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    gameContainer.classList.remove('hidden');
+    showQuestion();
+}
+
+function showQuestion() {
+    answering = false;
+    const q = quizOrder[currentIndex];
+    document.getElementById('animal-emoji').textContent = q.emoji;
+    document.getElementById('animal-name').textContent = q.name;
+    document.getElementById('question-number').textContent = `${currentIndex + 1}/${quizOrder.length}`;
+    document.getElementById('feedback-overlay').classList.add('hidden');
+}
+
+function handleAnswer(choice) {
+    if (answering) return;
+    answering = true;
+    const q = quizOrder[currentIndex];
+    const correct = choice === q.answer;
+    if (correct) score++;
+    document.getElementById('score-display').textContent = score;
+
+    const box = document.getElementById('feedback-box');
+    const icon = document.getElementById('feedback-icon');
+    const text = document.getElementById('feedback-text');
+    box.className = 'rounded-3xl px-10 py-8 text-center shadow-2xl border-4 ' + (correct ? 'bg-emerald-600/95 border-emerald-300' : 'bg-rose-600/95 border-rose-300');
+    icon.className = 'text-6xl mb-2 fa-solid ' + (correct ? 'fa-circle-check' : 'fa-circle-xmark');
+    text.textContent = correct ? 'ถูกต้อง!' : `ยังไม่ถูกนะ (คำตอบคือ ${labelFor(q.answer)})`;
+    document.getElementById('feedback-overlay').classList.remove('hidden');
+
+    setTimeout(() => {
+        currentIndex++;
+        if (currentIndex >= quizOrder.length) {
+            endGame();
+        } else {
+            showQuestion();
+        }
+    }, 1400);
+}
+
+function labelFor(answer) {
+    return { plant: 'กินพืช', meat: 'กินเนื้อ', both: 'กินทั้งพืชและสัตว์' }[answer];
+}
+
+function endGame() {
+    gameContainer.classList.add('hidden');
+    resultScreen.classList.remove('hidden');
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('final-total').textContent = quizOrder.length;
+}
+
+/* ---------------------------------------------------------
+   EVENT BINDINGS (tap/click always works, with or without camera)
+--------------------------------------------------------- */
+btnStart.addEventListener('click', startGame);
+btnRestart.addEventListener('click', startGame);
+document.querySelectorAll('#answer-zone .answer-card').forEach(card => {
+    card.addEventListener('click', () => handleAnswer(card.dataset.answer));
+});
+</script>
+</body>
+</html>
